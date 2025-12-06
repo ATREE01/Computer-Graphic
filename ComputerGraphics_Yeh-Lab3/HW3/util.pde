@@ -191,8 +191,34 @@ public float getDepth(float x, float y, Vector3[] vertex) {
     // You need to calculate the depth (z) in the triangle (vertex) based on the
     // positions x and y. and return the z value;
 
-    return 0.0;
+    // 1. Calculate two edge vectors from the first vertex
+    Vector3 v01 = vertex[1].sub(vertex[0]);
+    Vector3 v02 = vertex[2].sub(vertex[0]);
+
+    // 2. Calculate the Normal vector of the triangle using Cross Product
+    // The Normal (A, B, C) defines the orientation of the plane.
+    Vector3 normal = Vector3.cross(v01, v02);
+
+    // 3. Solve for Z using the Plane Equation:
+    // A(x - x0) + B(y - y0) + C(z - z0) = 0
+    //
+    // Rearranging to solve for z:
+    // C(z - z0) = -A(x - x0) - B(y - y0)
+    // z = z0 - (A * (x - x0) + B * (y - y0)) / C
+
+    // Prevent division by zero if the triangle is perpendicular to the camera (C is 0)
+    if (Math.abs(normal.z) < 1e-6) {
+        return vertex[0].z;
+    }
+
+    float diffX = x - vertex[0].x;
+    float diffY = y - vertex[0].y;
+
+    float z = vertex[0].z - (normal.x * diffX + normal.y * diffY) / normal.z;
+
+    return z;
 }
+
 
 float[] barycentric(Vector3 P, Vector4[] verts) {
 
