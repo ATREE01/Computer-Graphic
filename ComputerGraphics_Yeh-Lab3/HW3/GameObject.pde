@@ -65,7 +65,7 @@ public class GameObject {
     void update() {
     }
 
-    void debugDraw() {
+void debugDraw() {
         Matrix4 MVP = main_camera.Matrix().mult(localToWorld());
         for (int i = 0; i < mesh.triangles.size(); i++) {
             Triangle triangle = mesh.triangles.get(i);
@@ -78,6 +78,26 @@ public class GameObject {
                 img_pos[j] = new Vector3(map(img_pos[j].x, -1, 1, renderer_size.x, renderer_size.z),
                         map(img_pos[j].y, -1, 1, renderer_size.y, renderer_size.w), img_pos[j].z);
             }
+
+            // --- NEW CODE: Backface Culling (Screen Space) ---
+            
+            // 1. Calculate two edge vectors on the screen
+            float ax = img_pos[1].x - img_pos[0].x;
+            float ay = img_pos[1].y - img_pos[0].y;
+            float bx = img_pos[2].x - img_pos[0].x;
+            float by = img_pos[2].y - img_pos[0].y;
+
+            // 2. Calculate the 2D Cross Product (Z-component)
+            // Formula: (x1 * y2) - (y1 * x2)
+            float crossProduct = ax * by - ay * bx;
+
+            // 3. Check Winding Order
+            // If the result is Negative (or Positive depending on your Y-axis setup), it is a backface.
+            // NOTE: If your model disappears completely, change '< 0' to '> 0'.
+            if (crossProduct < 0) { 
+                continue; 
+            }
+            // ------------------------------------------------
 
             CGLine(img_pos[0].x, img_pos[0].y, img_pos[1].x, img_pos[1].y);
             CGLine(img_pos[1].x, img_pos[1].y, img_pos[2].x, img_pos[2].y);
