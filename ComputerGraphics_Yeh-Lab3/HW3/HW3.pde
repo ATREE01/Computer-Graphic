@@ -59,11 +59,81 @@ String selectFile() {
     return "";
 }
 
-void cameraControl(){
-    // You can write your own camera control function here.
-    // Use setPositionOrientation(Vector3 position,Vector3 lookat) to modify the ViewMatrix.
-    // Hint : Use keyboard event and mouse click event to change the position of the camera.       
-        
-    main_camera.setPositionOrientation(cam_position, new Vector3(0,0,1));
+// Camera Angles
+float cam_yaw   = -90.0f; // Start looking at -Z (Into the screen)
+float cam_pitch = 0.0f;   // Start looking level
 
+void cameraControl() {
+    float moveSpeed   = 0.2f;  // How fast you move
+    float mouseSensitivity = 0.5f; // How fast you look around
+
+    // --- 1. MOUSE LOOK (Pitch & Yaw) ---
+    // We update angles only when mouse is pressed (to avoid spinning when checking UI)
+    if (mousePressed) {
+        float dx = (mouseX - pmouseX) * mouseSensitivity;
+        float dy = (mouseY - pmouseY) * mouseSensitivity;
+
+        cam_yaw   += dx;
+        cam_pitch -= dy; // Inverted Y: Moving mouse Up (negative Y) increases Pitch (look up)
+
+        // Clamp Pitch so you can't backflip (Standard FPS limit)
+        if (cam_pitch > 89.0f)  cam_pitch = 89.0f;
+        if (cam_pitch < -89.0f) cam_pitch = -89.0f;
+    }
+
+    // --- 2. CALCULATE VECTORS ---
+    // Convert angles (degrees) to a Forward Vector (Direction)
+    float radYaw   = (float)Math.toRadians(cam_yaw);
+    float radPitch = (float)Math.toRadians(cam_pitch);
+
+    // Spherical to Cartesian Coordinates conversion
+    Vector3 front = new Vector3();
+    front.set(
+        (float)(Math.cos(radYaw) * Math.cos(radPitch)),
+        (float)Math.sin(radPitch),
+        (float)(Math.sin(radYaw) * Math.cos(radPitch))
+    );
+    Vector3 forward = front.unit_vector();
+
+    // Calculate Right Vector (Cross Product of Forward and World Up)
+    Vector3 right = Vector3.cross(forward, Vector3.UnitY()).unit_vector();
+    
+    // Calculate Up Vector (Camera's local up)
+    Vector3 up = Vector3.cross(right, forward).unit_vector();
+
+
+    // --- 3. KEYBOARD MOVEMENT ---
+    if (keyPressed) {
+        // W: Move Forward
+        if (key == 'w' || key == 'W') {
+            cam_position = cam_position.add(forward.mult(moveSpeed));
+        }
+        // S: Move Backward
+        if (key == 's' || key == 'S') {
+            cam_position = cam_position.sub(forward.mult(moveSpeed));
+        }
+        // A: Strafe Left
+        if (key == 'a' || key == 'A') {
+            cam_position = cam_position.sub(right.mult(moveSpeed));
+        }
+        // D: Strafe Right
+        if (key == 'd' || key == 'D') {
+            cam_position = cam_position.add(right.mult(moveSpeed));
+        }
+        
+        // OPTIONAL: Fly Up/Down
+        // Space to go Up
+        if (key == ' ') {
+            cam_position = cam_position.add(Vector3.UnitY().mult(moveSpeed));
+        }
+        // Shift (or 'c') to go Down
+        if (keyCode == SHIFT || key == 'c') {
+            cam_position = cam_position.sub(Vector3.UnitY().mult(moveSpeed));
+        }
+    }
+
+    // --- 4. UPDATE CAMERA MATRIX ---
+    // FPS Camera looks at "Position + Direction"
+    Vector3 target = cam_position.add(forward);
+    main_camera.setPositionOrientation(cam_position, target);
 }
